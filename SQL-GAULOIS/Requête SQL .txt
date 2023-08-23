@@ -1,0 +1,275 @@
+Requête SQL :
+
+1. Nom des lieux qui finissent par 'um'.
+    	Requête :SELECT *
+		 FROM lieu 
+		 WHERE nom_lieu LIKE '%um'
+
+--------------------------------------------------------------------------------------------------------------
+
+2. Nombre de personnages par lieu (trié par nombre de personnages décroissant).
+	Requête : 
+		SELECT id_lieu, COUNT(*) as num_characters
+		FROM personnage
+		GROUP BY id_lieu	
+		ORDER BY num_characters DESC;
+
+--------------------------------------------------------------------------------------------------------------
+
+3. Nom des personnages + spécialité + adresse et lieu d'habitation, triés par lieu puis par nom de personnage.
+
+	Requête : SELECT nom_personnage, adresse_personnage, id_specialite, id_lieu
+		  FROM personnage
+		  ORDER BY id_lieu, nom_personnage ASC;
+		
+--------------------------------------------------------------------------------------------------------------
+
+4. Nom des spécialités avec nombre de personnages par spécialité (trié par nombre de personnages décroissant)
+
+	Requête : SELECT specialite.nom_specialite, COUNT(personnage.id_specialite) as nb_personnages
+		  FROM personnage
+		  JOIN specialite ON personnage.id_specialite = specialite.id_specialite
+		  GROUP BY specialite.nom_specialite
+		  ORDER BY nb_personnages DESC;
+
+--------------------------------------------------------------------------------------------------------------
+
+5. Nom, date et lieu des batailles, classées de la plus récente à la plus ancienne (dates affichées au format jj/mm/aaaa). 
+
+
+	Requête : SELECT nom_bataille, DATE_FORMAT(date_bataille, '%d-%m-%Y'), lieu.nom_lieu, bataille.id_lieu
+		  FROM bataille
+		  JOIN lieu ON bataille.id_lieu = lieu.id_lieu
+		  ORDER BY date_bataille DESC
+
+--------------------------------------------------------------------------------------------------------------
+
+
+6. Nom des potions + coût de réalisation de la potion (trié par coût décroissant).
+
+	Requête : SELECT p.nom_potion, 
+		  SUM(i.cout_ingredient * co.qte) AS cout_total
+		  FROM potion p
+	  	  JOIN composer co ON p.id_potion = co.id_potion
+		  JOIN ingredient i ON co.id_ingredient  = i.id_ingredient
+		  GROUP BY p.nom_potion
+		  ORDER BY cout_total DESC
+
+--------------------------------------------------------------------------------------------------------------
+
+7. Nom des ingrédients + coût + quantité de chaque ingrédient qui composent la potion 'Santé'.
+
+	Requête :
+		SELECT i.nom_ingredient, i.cout_ingredient, co.qte AS cout_qtt_ingredient
+		FROM ingredient i 
+		JOIN composer co ON i.id_ingredient = co.id_ingredient
+		JOIN potion p ON co.id_potion = p.id_potion
+		WHERE p.nom_potion = 'Santé'
+
+--------------------------------------------------------------------------------------------------------------
+
+8. Nom du ou des personnages qui ont pris le plus de casques dans la bataille 'Bataille du village gaulois'.
+
+	Requête : SELECT a.nom_personnage, MAX(b.qte)
+		  FROM personnage a
+		  INNER JOIN prendre_casque b ON  a.id_personnage = b.id_personnage
+ 	 	  INNER JOIN bataille c ON c.id_bataille = b.id_bataille
+		  WHERE qte = (SELECT MAX(qte) FROM prendre_casque)
+		  AND nom_bataille = 'Bataille du village gaulois'
+		  GROUP BY nom_personnage
+
+--------------------------------------------------------------------------------------------------------------
+
+9. Nom des personnages et leur quantité de potion bue (en les classant du plus grand buveur au plus petit).
+
+	Requête : SELECT pers.nom_personnage, dose_boire
+		  FROM personnage pers
+	  	  INNER JOIN boire bo ON pers.id_personnage = bo.id_personnage
+		  ORDER BY dose_boire DESC
+
+--------------------------------------------------------------------------------------------------------------
+
+10. Nom de la bataille où le nombre de casques pris a été le plus important.
+
+	Requête :SELECT nom_bataille
+		 FROM bataille
+		 INNER JOIN prendre_casque ON prendre_casque.id_bataille = bataille.id_bataille
+		 WHERE qte = (SELECT MAX(qte) FROM prendre_casque)
+		 GROUP BY nom_bataille 
+
+
+--------------------------------------------------------------------------------------------------------------
+
+		
+
+11. Combien existe-t-il de casques de chaque type et quel est leur coût total ? (classés par nombre décroissant)
+	
+	Requête : SELECT `tc`.`nom_type_casque` AS `Type de casque`,
+   		  COUNT(`c`.`id_casque`) AS `Nombre de casques`,
+    		  SUM(`c`.`cout_casque`) AS `Coût total`
+    		  FROM `casque` AS `c`
+		  INNER JOIN `type_casque` AS `tc` ON `c`.`id_type_casque` = `tc`.`id_type_casque`
+    		  GROUP BY `tc`.`nom_type_casque`
+	    	  ORDER BY `Nombre de casques` DESC;
+    		  
+--------------------------------------------------------------------------------------------------------------
+
+12. Nom des potions dont un des ingrédients est le poisson frais :
+
+	Requête : SELECT nom_potion    
+	 	  FROM potion 
+		  INNER JOIN composer ON composer.id_potion = potion.id_potion
+		  INNER JOIN ingredient ON ingredient.id_ingredient = composer.id_ingredient
+		  WHERE nom_ingredient = 'Poisson frais'
+
+
+--------------------------------------------------------------------------------------------------------------
+
+13. Nom du / des lieu(x) possédant le plus d'habitants, en dehors du village gaulois. :
+
+	Requête : SELECT nom_lieu AS 'nlieu',COUNT(id_personnage) AS population
+		  FROM lieu
+		  INNER JOIN personnage ON personnage.id_lieu = lieu.id_lieu
+		  WHERE nom_lieu != 'Village gaulois'
+		  GROUP BY nlieu
+		  HAVING population >= ALL (
+    			SELECT COUNT(p.id_personnage)
+    			FROM lieu l
+   			INNER JOIN personnage p ON p.id_lieu = l.id_lieu
+   			WHERE nom_lieu != 'Village gaulois'
+    			GROUP BY l.nom_lieu
+    			)
+--------------------------------------------------------------------------------------------------------------
+
+14. Nom des personnages qui n'ont jamais bu aucune potion. :
+
+	Requête : SELECT p.nom_personnage
+		  FROM personnage p
+		  LEFT JOIN boire b ON p.id_personnage = b.id_personnage
+		  WHERE b.id_personnage IS NULL
+--------------------------------------------------------------------------------------------------------------
+
+15. Nom du / des personnages qui n'ont pas le droit de boire de la potion 'Magique'.
+
+	Requête : 
+		  SELECT nom_personnage
+		  FROM personnage p
+	  	  LEFT JOIN autoriser_boire a ON  a.id_personnage = p.id_personnage
+		  WHERE p.id_personnage  NOT IN (
+			SELECT id_personnage 
+			FROM autoriser_boire 
+			WHERE id_potion='1'
+					)
+		  GROUP BY nom_personnage
+		  ORDER BY nom_personnage 
+
+
+-----------------------------------------------------------------------------------------------------------------------
+
+
+En écrivant toujours des requêtes SQL, modifiez la base de données comme suit :
+
+
+
+
+A. Ajoutez le personnage suivant : Champdeblix, agriculteur résidant à la ferme Hantassion de Rotomagus
+
+-----------------------------------------------OLD
+
+	Requête : INSERT INTO personnage (nom_personnage, id_specialite, id_lieu, adresse_personnage)
+		  VALUES ('Champdeblix', 12, 6, 'Ferme Hantassion');
+
+	Faire sous requêtes 
+
+
+--------------------------------------------Avec sous requêtes
+
+	INSERT INTO personnage (nom_personnage, adresse_personnage, id_lieu, id_specialite)
+		VALUES ('Champdeblix', 'Ferme Hantassion',
+       		 (SELECT id_lieu FROM lieu WHERE nom_lieu = 'Rotomagus'),
+       		 (SELECT id_specialite FROM specialite WHERE nom_specialite ='Agriculteur'));
+
+	Requête pour vérifier :
+		
+			Requête : SELECT * FROM personnage WHERE nom_personnage = 'Champdeblix';
+
+		
+
+--------------------------------------------------------------------------------------------------------------
+
+B. Autorisez Bonemine à boire de la potion magique, elle est jalouse d'Iélosubmarine...
+
+---------------------------DELET
+	Delet : DELETE FROM autoriser_boire
+		WHERE id_potion = 1
+		AND id_personnage = 12;
+
+
+
+-----------------------------Requête
+
+
+	Requête : INSERT INTO autoriser_boire (id_personnage, id_potion)
+		  VALUES (
+    			(SELECT id_personnage FROM personnage WHERE nom_personnage = 'Bonemine'),
+    			(SELECT id_potion FROM potion WHERE nom_potion = 'Magique')
+		  );
+
+	Verification de la requête :
+			Requête : SELECT * FROM autoriser_boire
+				  WHERE id_personnage = (SELECT id_personnage FROM personnage WHERE nom_personnage = 'Bonemine')
+				  AND id_potion = (SELECT id_potion FROM potion WHERE nom_potion = 'Magique');
+
+
+ 	Erreur SQL (1048): Column 'id_lieu' cannot be null
+
+------------------------------------------------------------------------------------------------------------------
+
+
+
+C. Supprimez les casques grecs qui n'ont jamais été pris lors d'une bataille :
+
+	Requête : DELETE FROM casque
+		  WHERE id_type_casque = 2
+		  AND id_casque NOT IN (
+			SELECT DISTINCT id_casque
+ 			FROM prendre_casque
+		 );
+
+--------------------------------------------------------------------------------------------------------------
+
+D. Modifiez l'adresse de Zérozérosix : il a été mis en prison à Condate.
+
+ 	Requête : UPDATE personnage 
+		  SET adresse_personnage = 'En prison' 
+		  WHERE id_personnage = '23';
+		  UPDATE personnage 
+		  SET id_lieu ='9'
+ 		  WHERE id_personnage = '23';
+
+--------------------------------------------------------------------------------------------------------------
+
+E. La potion 'Soupe' ne doit plus contenir de persil	
+
+	Requête : DELETE FROM composer 
+		  WHERE id_potion = 9 
+		  AND id_ingredient = 19 
+
+	après vérification la potion 'soupe' est vide : Requête utilisée pour tester
+
+	Requête:SELECT i.nom_ingredient
+		       FROM potion p
+		       JOIN composer c ON p.id_potion = c.id_potion
+		       JOIN ingredient i ON c.id_ingredient = i.id_ingredient
+		       WHERE p.nom_potion = 'soupe';
+
+
+--------------------------------------------------------------------------------------------------------------		
+
+F. Obélix s'est trompé : ce sont 42 casques Weisenau, et non Ostrogoths, qu'il a pris lors de la  bataille 'Attaque de la banque postale'. Corrigez son erreur 
+
+	Requête : UPDATE `prendre_casque`
+		  SET `id_casque` = (SELECT `id_casque` FROM `casque` WHERE `nom_casque` = 'Weisenau'),`qte` = 42
+    		  WHERE `id_personnage` = (SELECT `id_personnage` FROM `personnage` WHERE `nom_personnage` = 'Obélix')
+		  AND `id_bataille` = (SELECT `id_bataille` FROM `bataille` WHERE `nom_bataille` = 'Attaque de la banque 		  postale');		  
+  
